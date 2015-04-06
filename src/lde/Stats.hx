@@ -1,6 +1,7 @@
 package lde ;
 
 import haxe.Timer;
+import openfl.Assets;
 import openfl.text.TextField;
 import openfl.text.TextFormat;
 import openfl.events.Event;
@@ -20,12 +21,13 @@ class Stats extends TextField
 		y = Y;
 		selectable = false;
 		
-		defaultTextFormat = new TextFormat("_sans", 12, color);
+		embedFonts = true;
+		defaultTextFormat = new TextFormat(Assets.getFont("fonts/bored6x8.ttf").fontName, 16, color);
 		
 		times = [];
 		addEventListener(Event.ENTER_FRAME, onEnter);
-		width = 150;
-		height = 70;
+		width = 200;
+		height = 64;
 	}
 
 	private function onEnter(_)
@@ -41,7 +43,9 @@ class Stats extends TextField
 		
 		if (visible)
 		{	
-			text = "FPS: " + times.length + "\nMEM: " + mem + " MB\nMEM peak: " + memPeak + " MB";	
+			text = "Fps:  " + times.length + "\n" +
+			       "Mem:  " + mem + " MB\n" +
+				   "Peak: " + memPeak + " MB";	
 		}
 	}
 	

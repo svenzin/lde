@@ -5,7 +5,7 @@
     <movie outputType="Application" />
     <movie input="" />
     <movie path="application.xml" />
-    <movie fps="120" />
+    <movie fps="60" />
     <movie width="960" />
     <movie height="540" />
     <movie version="3" />
