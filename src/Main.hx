@@ -3,6 +3,7 @@ package ;
 import flash.display.Sprite;
 import flash.events.Event;
 import flash.Lib;
+import lde.Colors;
 import lde.Keys;
 import openfl.events.EventDispatcher;
 import openfl.events.KeyboardEvent;
@@ -28,7 +29,7 @@ class Main extends Sprite
 	}
 	
 	var kbd : Keys = new Keys();
-	var stats : Stats = new Stats(10, 10, 0xFFFFFF);
+	var stats : Stats = new Stats(10, 10, Colors.GREY_75);
 	
 		var t : TextField = new TextField();
 	function init() 
@@ -45,7 +46,7 @@ class Main extends Sprite
 		t.y = 10;
 		t.width = 400;
 		t.height = 20;
-		t.textColor = 0xFFFFFF;
+		t.textColor = Colors.GREY_75;
 		addChild(t);
 		// Stage:
 		// stage.stageWidth x stage.stageHeight @ stage.dpiScale
