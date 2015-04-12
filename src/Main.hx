@@ -22,6 +22,27 @@ import lde.Stats;
  * @author scorder
  */
 
+class TilerCharacter extends Tiler
+{
+	static public var IDLE   = Id.get();
+	static public var WALK_R = Id.get();
+	static public var WALK_L = Id.get();
+	static public var GRAB_R = Id.get();
+	static public var GRAB_L = Id.get();
+	static public var DEATH  = Id.get();
+	
+	public function new()
+	{
+		super(Assets.getBitmapData("gfx/Character.png"));
+		slice([0, 0], [28, 28], [4, 6]);
+		register(IDLE,   [  0,  1,  2,  3 ]);
+		register(WALK_R, [  4,  5,  6,  7 ]);
+		register(WALK_L, [  8,  9, 10, 11 ]);
+		register(GRAB_R, [ 12, 13, 14, 15 ]);
+		register(GRAB_L, [ 16, 17, 18, 19 ]);
+		register(DEATH,  [ 20, 21, 22, 23 ]);
+	}
+}
 class TilerArrow extends Tiler
 {
 	static public var ARROW_UP       = Id.get();
@@ -42,24 +63,31 @@ class Gfx extends Sprite
 	{
 		super();
 		
-		tiler = new TilerArrow();
+		tiler = new TilerCharacter();
 	}
 	
 	public function getAnimation(id : Int) : TiledAnimation
 	{
 		var a = new TiledAnimation();
+		a.id = id;
 		a.indices = tiler.get(id);
 		return a;
 	}
 	
+	public var viewport : Rectangle;
 	var data : Array<Float> = new Array();
 	
 	public function draw(entities : Array<Entity>)
 	{
-		for (e in entities.filter(function (e) return e.animation != null))
+		var active = entities
+			.filter(function (e) return (e.animation != null))
+			.filter(function (e) return (viewport.left - 50 <= e.x && e.x <= viewport.right  + 50))
+			.filter(function (e) return (viewport.top  - 50 <= e.y && e.y <= viewport.bottom + 50));
+		
+		for (e in active)
 		{
 			e.animation.update();
-			data = data.concat([e.x, e.y, e.animation.get()]);
+			data = data.concat([e.x - viewport.x, e.y - viewport.y, e.animation.get()]);
 		}
 	}
 	
@@ -71,7 +99,7 @@ class Gfx extends Sprite
 	}
 }
 
-class Level extends Tiler
+class Level
 {
 	var size = [ 34, 19 ];
 	var level = [
@@ -96,10 +124,11 @@ class Level extends Tiler
 [12,12,12,12,12,12,12,12,12,6,13,7,6,13,13,7,6,13,13,13,7,12,12,6,13,13,13,13,7,12,12,12,12,12],
 	];
 	
+	var tiler : Tiler;
 	public function new()
 	{
-		super(Assets.getBitmapData("gfx/Level.png"));
-		slice([0, 0], [32, 32], [4, 4]);
+		tiler = new Tiler(Assets.getBitmapData("gfx/Level.png"));
+		tiler.slice([0, 0], [32, 32], [4, 4]);
 	}
 	
 	public var data = new Array<Float>();
@@ -119,11 +148,13 @@ class Level extends Tiler
 		var count = 3 * (ix1 - ix0) * (iy1 - iy0);
 		if (data.length < count)
 		{
+			//trace("increase by " + (count - data.length));
 			data[count - 1] = 0.0;
 		}
-		else
+		if (data.length > count)
 		{
-			//data.splice(count, data.length);
+			//trace("reduce by " + (data.length - count));
+			data.splice(count, data.length);
 		}
 		
 		var index = 0;
@@ -137,7 +168,7 @@ class Level extends Tiler
 				index += 3;
 			}
 		}
-		sheet.drawTiles(graphics, data.slice(0, index));
+		tiler.sheet.drawTiles(graphics, data);
 	}
 }
 
@@ -173,6 +204,8 @@ class Main extends Sprite
 		gfx = new Gfx();
 		addChild(gfx);
 		
+		Lib.current.stage.color = Colors.GREY_25;
+		
 		addEventListener(Event.ENTER_FRAME, step);
 		
 		
@@ -183,19 +216,10 @@ class Main extends Sprite
 		t.textColor = Colors.GREY_75;
 		addChild(t);
 		
-		// Stage:
-		// stage.stageWidth x stage.stageHeight @ stage.dpiScale
-		
-		// Assets:
-		// nme.Assets.getBitmapData("img/assetname.jpg");
-		arrow.x = 200;
-		arrow.y = 200;
-		arrow.animation = gfx.getAnimation(TilerArrow.ARROW_ROTATION);
-		arrow.animation.stop();
-		
-		up.x = 200;
-		up.y = 250;
-		up.animation = gfx.getAnimation(TilerArrow.ARROW_UP);
+		chr.x = 200;
+		chr.y = 200;
+		chr.animation = gfx.getAnimation(TilerCharacter.IDLE);
+		chr.animation.start(16);
 	}
 
 	
@@ -204,23 +228,57 @@ class Main extends Sprite
 	
 	var id : Int = 0;
 	var f : Bool = true;
-	var arrow = new Entity();
-	var up = new Entity();
 	var lvl = new Level();
+	var chr = new Entity();
+	var viewport = new Rectangle(0, 0, 960, 540);
 	function step(_)
 	{
-				Lib.current.stage.color = Colors.GREY_25;
-		id = Watch.frameCount;
+		if (kbd.isKeyDown(Keyboard.LEFT))
+		{
+			chr.x -= 2;
+			viewport.x -= 2;
+			if (chr.animation.id != TilerCharacter.WALK_L)
+			{
+				chr.animation = gfx.getAnimation(TilerCharacter.WALK_L);
+				chr.animation.start(8);
+			}
+		}
+		else if (kbd.isKeyDown(Keyboard.RIGHT))
+		{
+			chr.x += 2;
+			viewport.x += 2;
+			if (chr.animation.id != TilerCharacter.WALK_R)
+			{
+				chr.animation = gfx.getAnimation(TilerCharacter.WALK_R);
+				chr.animation.start(8);
+			}
+		}
+		else
+		{
+			if (chr.animation.id != TilerCharacter.IDLE)
+			{
+				chr.animation = gfx.getAnimation(TilerCharacter.IDLE);
+				chr.animation.start(16);
+			}
+		}
+		if (kbd.isKeyDown(Keyboard.UP))
+		{
+			viewport.y -= 1;
+		}
+		else if (kbd.isKeyDown(Keyboard.DOWN))
+		{
+			viewport.y += 1;
+		}
+		if (kbd.isKeyChanged(Keyboard.SPACE))
+		{
+			chr.animation = gfx.getAnimation(TilerCharacter.DEATH);
+			chr.animation.start(16);
+		}
 		
-		t.text = "" + f + " " + (id % 8);
-		if (kbd.isKeyChanged(Keyboard.SPACE)) { arrow.animation.toggle(); }
-		if (kbd.isKeyDown(Keyboard.LEFT)) { lvl.viewport.x -= 1; }
-		if (kbd.isKeyDown(Keyboard.RIGHT)) { lvl.viewport.x += 1; }
-		if (kbd.isKeyDown(Keyboard.UP)) { lvl.viewport.y -= 1; }
-		if (kbd.isKeyDown(Keyboard.DOWN)) { lvl.viewport.y += 1; }
-		
-		gfx.draw([up, arrow]);
+		gfx.viewport = viewport;
+		gfx.draw([chr]);
 		gfx.render();
+		lvl.viewport = viewport;
 		lvl.render(gfx.graphics);
 	}
 

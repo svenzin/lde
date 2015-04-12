@@ -1,6 +1,7 @@
 package lde;
 class TiledAnimation
 {
+	public var id : Int;
 	public var indices : Array<Int>;
 	public function new()
 	{
@@ -17,13 +18,15 @@ class TiledAnimation
 	{
 		if (isRunning)
 		{
-			currentFrame = (Watch.frameCount - startFrame) % indices.length;
+			currentFrame =  Std.int((Watch.frameCount - startFrame) / slowBy) % indices.length;
 		}
 	}
 
-	public function start()
+	var slowBy : Int;
+	public function start(slowed : Int = 1)
 	{
 		startFrame = Watch.frameCount - currentFrame;
+		slowBy = slowed;
 		isRunning = true;
 	}
 	
