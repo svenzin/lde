@@ -13,6 +13,7 @@ import openfl.events.EventDispatcher;
 import openfl.events.KeyboardEvent;
 import openfl.geom.Point;
 import openfl.geom.Rectangle;
+import openfl.media.SoundTransform;
 import openfl.text.TextField;
 import openfl.ui.Keyboard;
 
@@ -21,7 +22,22 @@ import lde.Stats;
  * ...
  * @author scorder
  */
-
+class Audio
+{
+	static var volume : Float = 0.2;
+	public static function getVolume() { return volume; }
+	public static function setVolume(v : Float) { volume = v; }
+	
+	public static function tsf() { return new SoundTransform(volume); }
+	
+	public static function BGM() { return Assets.getSound("sfx/bgm.mp3"); }
+	public static function JUMP() { return Assets.getSound("sfx/jump.mp3"); }
+	
+	public static function play(sound : Int)
+	{
+		
+	}
+}
 class TilerCharacter extends Tiler
 {
 	static public var IDLE   = Id.get();
@@ -220,6 +236,9 @@ class Main extends Sprite
 		chr.y = 200;
 		chr.animation = gfx.getAnimation(TilerCharacter.IDLE);
 		chr.animation.start(16);
+		
+		//var s = Assets.getSound("sfx/bgm.mp3");
+		Audio.BGM().play(0.0, 1, Audio.tsf());
 	}
 
 	
@@ -233,6 +252,14 @@ class Main extends Sprite
 	var viewport = new Rectangle(0, 0, 960, 540);
 	function step(_)
 	{
+		if (kbd.isKeyPushed(Keyboard.PAGE_UP))
+		{
+			Audio.setVolume(Audio.getVolume() + 0.1);
+		}
+		else if (kbd.isKeyPushed(Keyboard.PAGE_DOWN))
+		{
+			Audio.setVolume(Audio.getVolume() - 0.1);
+		}
 		if (kbd.isKeyDown(Keyboard.LEFT))
 		{
 			chr.x -= 2;
@@ -264,6 +291,10 @@ class Main extends Sprite
 		if (kbd.isKeyDown(Keyboard.UP))
 		{
 			viewport.y -= 1;
+			if (kbd.isKeyChanged(Keyboard.UP))
+			{
+				Audio.JUMP().play(0.0, 1, Audio.tsf());
+			}
 		}
 		else if (kbd.isKeyDown(Keyboard.DOWN))
 		{

@@ -20,6 +20,7 @@ class Keys extends EventDispatcher
 	
 	public function isKeyDown(key : Int) : Bool { return isDown[key]; }
 	public function isKeyChanged(key : Int) : Bool { return isChanged[key]; }
+	public function isKeyPushed(key : Int) : Bool { return isChanged[key]; }
 	
 	public function remap(event : String, key : Int)
 	{
