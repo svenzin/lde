@@ -21,6 +21,7 @@
 	<icon path="assets/openfl.svg" />
 	<assets path="assets/img" rename="img" />
 	<assets path="assets/fonts" rename="fonts" />
+	<assets path="assets/gfx" rename="gfx" />
 	
 	<!-- optimize output
 	<haxeflag name="-dce full" /> -->

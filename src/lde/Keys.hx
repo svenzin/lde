@@ -2,6 +2,7 @@ package lde ;
 import openfl.events.Event;
 import openfl.events.EventDispatcher;
 import openfl.events.KeyboardEvent;
+import openfl.Lib;
 import openfl.ui.Keyboard;
 
 /**
@@ -11,11 +12,11 @@ import openfl.ui.Keyboard;
 class Keys extends EventDispatcher
 {
 	static public var CONSOLE : String = "CONSOLE";
-	static public var UP    : String = "UP";
-	static public var DOWN  : String = "DOWN";
-	static public var LEFT  : String = "LEFT";
-	static public var RIGHT : String = "RIGHT";
-	static public var START : String = "START";
+	static public var P1_UP    : String = "P1_UP";
+	static public var P1_DOWN  : String = "P1_DOWN";
+	static public var P1_LEFT  : String = "P1_LEFT";
+	static public var P1_RIGHT : String = "P1_RIGHT";
+	static public var P1_START : String = "P1_START";
 	
 	public function isKeyDown(key : Int) : Bool { return isDown[key]; }
 	public function isKeyChanged(key : Int) : Bool { return isChanged[key]; }
@@ -32,31 +33,33 @@ class Keys extends EventDispatcher
 	var keyMap : Map<Int, String>;
 	var isDown : Array<Bool>;
 	var isChanged : Array<Bool>;
+	var isChangedAccumulator : Array<Bool>;
 	
 	function new()
 	{
 		super();
 		
 		isDown = new Array();
+		isChangedAccumulator = new Array();
 		isChanged = new Array();
 		
 		keyMap = new Map();
 		remap(CONSOLE, 223);
-		remap(UP, Keyboard.UP);
-		remap(DOWN, Keyboard.UP);
-		remap(LEFT, Keyboard.DOWN);
-		remap(LEFT, Keyboard.LEFT);
-		remap(RIGHT, Keyboard.RIGHT);
-		remap(START, Keyboard.ENTER);
+		remap(P1_UP, Keyboard.UP);
+		remap(P1_DOWN, Keyboard.DOWN);
+		remap(P1_LEFT, Keyboard.LEFT);
+		remap(P1_RIGHT, Keyboard.RIGHT);
+		remap(P1_START, Keyboard.ENTER);
 		
-		flash.Lib.current.stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
-		flash.Lib.current.stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
-		flash.Lib.current.stage.addEventListener(Event.EXIT_FRAME, step);
+		Lib.current.stage.addEventListener(KeyboardEvent.KEY_DOWN, keyDown);
+		Lib.current.stage.addEventListener(KeyboardEvent.KEY_UP, keyUp);
+		Lib.current.stage.addEventListener(Event.ENTER_FRAME, step, false, 1);
 	}
 	
 	function step(_)
 	{
-		isChanged = new Array();
+		isChanged = isChangedAccumulator;
+		isChangedAccumulator = new Array();
 	}
 	
 	function keyDown(e : KeyboardEvent)
@@ -64,12 +67,12 @@ class Keys extends EventDispatcher
 		if (!isDown[e.keyCode])
 		{
 			isDown[e.keyCode] = true;
-			isChanged[e.keyCode] = true;
+			isChangedAccumulator[e.keyCode] = true;
 		}
 		
 		for (key in keyMap.keys())
 		{
-			if (isChanged[key]) dispatchEvent(new KeyboardEvent(keyMap[key]));
+			if (isChangedAccumulator[key]) dispatchEvent(new KeyboardEvent(keyMap[key]));
 		}
 	}
 	
