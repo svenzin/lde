@@ -25,12 +25,24 @@ import lde.Stats;
  * @author scorder
  */
 
+class Ctrl
+{
+	static public var EVENT_CONSOLE : String = "CONSOLE";
+	
+	static public var KEY_CONSOLE = 223;
+	
+	static public var P1_UP    = Keyboard.UP;
+	static public var P1_DOWN  = Keyboard.DOWN;
+	static public var P1_LEFT  = Keyboard.LEFT;
+	static public var P1_RIGHT = Keyboard.RIGHT;
+	static public var P1_START = Keyboard.ENTER;
+}
 class Sfx
 {
 	public static var BGM  = Audio.load("sfx/bgm.mp3");
 	public static var JUMP = Audio.load("sfx/jump.mp3");
 }
-class TilerCharacter extends Tiler
+class Chr extends Tiler
 {
 	static public var IDLE   = Id.get();
 	static public var WALK_R = Id.get();
@@ -51,7 +63,7 @@ class TilerCharacter extends Tiler
 		register(DEATH,  [ 20, 21, 22, 23 ]);
 	}
 }
-class TilerArrow extends Tiler
+class Arrow extends Tiler
 {
 	static public var ARROW_UP       = Id.get();
 	static public var ARROW_ROTATION = Id.get();
@@ -71,7 +83,7 @@ class Gfx extends Sprite
 	{
 		super();
 		
-		tiler = new TilerCharacter();
+		tiler = new Chr();
 	}
 	
 	public function getAnimation(id : Int) : TiledAnimation
@@ -207,7 +219,8 @@ class Main extends Sprite
 		Watch.init();
 		
 		kbd = new Keys();
-		kbd.addEventListener(Keys.CONSOLE, switchConsole);
+		kbd.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
+		kbd.addEventListener(Ctrl.EVENT_CONSOLE, switchConsole);
 		
 		gfx = new Gfx();
 		addChild(gfx);
@@ -226,7 +239,7 @@ class Main extends Sprite
 		
 		chr.x = 200;
 		chr.y = 200;
-		chr.animation = gfx.getAnimation(TilerCharacter.IDLE);
+		chr.animation = gfx.getAnimation(Chr.IDLE);
 		chr.animation.start(16);
 		
 		//var s = Assets.getSound("sfx/bgm.mp3");
@@ -253,49 +266,49 @@ class Main extends Sprite
 		{
 			Audio.volume = Audio.volume - 0.1;
 		}
-		if (kbd.isKeyDown(Keyboard.LEFT))
+		if (kbd.isKeyDown(Ctrl.P1_LEFT))
 		{
 			chr.x -= 2;
 			viewport.x -= 2;
-			if (chr.animation.id != TilerCharacter.WALK_L)
+			if (chr.animation.id != Chr.WALK_L)
 			{
-				chr.animation = gfx.getAnimation(TilerCharacter.WALK_L);
+				chr.animation = gfx.getAnimation(Chr.WALK_L);
 				chr.animation.start(8);
 			}
 		}
-		else if (kbd.isKeyDown(Keyboard.RIGHT))
+		else if (kbd.isKeyDown(Ctrl.P1_RIGHT))
 		{
 			chr.x += 2;
 			viewport.x += 2;
-			if (chr.animation.id != TilerCharacter.WALK_R)
+			if (chr.animation.id != Chr.WALK_R)
 			{
-				chr.animation = gfx.getAnimation(TilerCharacter.WALK_R);
+				chr.animation = gfx.getAnimation(Chr.WALK_R);
 				chr.animation.start(8);
 			}
 		}
 		else
 		{
-			if (chr.animation.id != TilerCharacter.IDLE)
+			if (chr.animation.id != Chr.IDLE)
 			{
-				chr.animation = gfx.getAnimation(TilerCharacter.IDLE);
+				chr.animation = gfx.getAnimation(Chr.IDLE);
 				chr.animation.start(16);
 			}
 		}
-		if (kbd.isKeyDown(Keyboard.UP))
+		if (kbd.isKeyDown(Ctrl.P1_UP))
 		{
 			viewport.y -= 1;
-			if (kbd.isKeyChanged(Keyboard.UP))
+			if (kbd.isKeyPushed(Ctrl.P1_UP))
 			{
 				Audio.play(Sfx.JUMP);
 			}
 		}
-		else if (kbd.isKeyDown(Keyboard.DOWN))
+		else if (kbd.isKeyDown(Ctrl.P1_DOWN))
 		{
 			viewport.y += 1;
 		}
-		if (kbd.isKeyChanged(Keyboard.SPACE))
+		if (kbd.isKeyPushed(Ctrl.P1_START))
 		{
-			chr.animation = gfx.getAnimation(TilerCharacter.DEATH);
+			chr.animation = gfx.getAnimation(Chr.DEATH);
 			chr.animation.start(16);
 		}
 		
