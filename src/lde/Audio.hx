@@ -28,9 +28,12 @@ class Audio
 		
 		return _volume;
 	}
-	
+
 	static var sounds = new Array<SoundChannel>();
-	static function cleanup(e : Event) { sounds.remove(e.target); }
+	static function cleanup(e : Event)
+	{
+		sounds.remove(e.target);
+	}
 	
 	public static function load(name : String)
 	{
@@ -38,6 +41,31 @@ class Audio
 		{
 			return Assets.getSound(name);
 		};
+	}
+	
+	static var music : SoundChannel = null;
+	static var musicSource : Void -> Sound = null;
+	static function replay(e : Event)
+	{
+		music = musicSource().play(0.0, 1, _transform);
+		music.addEventListener(Event.SOUND_COMPLETE, replay);
+		trace(sounds.length);
+	}
+	
+	public static function playMusic(sound : Void -> Sound)
+	{
+		if (music != null)
+		{
+			music.stop();
+			sounds.remove(music);
+		}
+		
+		musicSource = sound;
+		
+		music = musicSource().play(0.0, 1, _transform);
+		music.addEventListener(Event.SOUND_COMPLETE, replay);
+		sounds.push(music);
+		trace(sounds.length);
 	}
 	
 	public static function play(sound : Void -> Sound, start : Float = 0.0, loops : Int = 1)

@@ -231,7 +231,7 @@ class Main extends Sprite
 		
 		//var s = Assets.getSound("sfx/bgm.mp3");
 		Audio.volume = 0.2;
-		Audio.play(Sfx.BGM);
+		Audio.playMusic(Sfx.BGM);
 	}
 
 	
