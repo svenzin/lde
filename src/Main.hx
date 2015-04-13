@@ -191,7 +191,107 @@ class Level
 		tiler.sheet.drawTiles(graphics, data);
 	}
 }
+class Lde
+{
+	public static var keys(get, null) : Keys;
+	public static var gfx(get, null) : Gfx;
+	
+	public static function initialize()
+	{
+		_keys = new Keys();
+		_gfx = new Gfx();
+		Watch.init();
+	}
+	
+	static var _keys : Keys;
+	static function get_keys() { return _keys; }
 
+	static var _gfx : Gfx;
+	static function get_gfx() { return _gfx; }
+}
+class Chapter
+{
+	public function new()
+	{}
+	
+	public function start()
+	{
+		Lib.current.stage.color = Colors.GREY_25;
+		
+		viewport = new Rectangle(0, 0, 960, 540);
+		
+		Audio.volume = 0.2;
+		Audio.playMusic(Sfx.BGM);
+		
+		chr = new Entity();
+		chr.x = 200;
+		chr.y = 200;
+		chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
+		chr.animation.start(16);
+		
+		lvl = new Level();
+	}
+	
+	public var chr : Entity;
+	public var lvl : Level;
+	public var viewport : Rectangle;
+	public function step()
+	{
+		if (Lde.keys.isKeyPushed(Keyboard.PAGE_UP))
+		{
+			Audio.volume = Audio.volume + 0.1;
+		}
+		else if (Lde.keys.isKeyPushed(Keyboard.PAGE_DOWN))
+		{
+			Audio.volume = Audio.volume - 0.1;
+		}
+		if (Lde.keys.isKeyDown(Ctrl.P1_LEFT))
+		{
+			chr.x -= 2;
+			viewport.x -= 2;
+			if (chr.animation.id != Chr.WALK_L)
+			{
+				chr.animation = Lde.gfx.getAnimation(Chr.WALK_L);
+				chr.animation.start(8);
+			}
+		}
+		else if (Lde.keys.isKeyDown(Ctrl.P1_RIGHT))
+		{
+			chr.x += 2;
+			viewport.x += 2;
+			if (chr.animation.id != Chr.WALK_R)
+			{
+				chr.animation = Lde.gfx.getAnimation(Chr.WALK_R);
+				chr.animation.start(8);
+			}
+		}
+		else
+		{
+			if (chr.animation.id != Chr.IDLE)
+			{
+				chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
+				chr.animation.start(16);
+			}
+		}
+		if (Lde.keys.isKeyDown(Ctrl.P1_UP))
+		{
+			viewport.y -= 1;
+			if (Lde.keys.isKeyPushed(Ctrl.P1_UP))
+			{
+				Audio.play(Sfx.JUMP);
+			}
+		}
+		else if (Lde.keys.isKeyDown(Ctrl.P1_DOWN))
+		{
+			viewport.y += 1;
+		}
+		if (Lde.keys.isKeyPushed(Ctrl.P1_START))
+		{
+			chr.animation = Lde.gfx.getAnimation(Chr.DEATH);
+			chr.animation.start(16);
+		}
+	}
+}
 class Main extends Sprite 
 {
 	var inited:Bool;
@@ -204,119 +304,46 @@ class Main extends Sprite
 		// else (resize or orientation change)
 	}
 	
+	var chapter : Chapter;
 	var gfx : Gfx;
-	var kbd : Keys;
 	
 	var stats : Stats = new Stats(10, 10, Colors.GREY_75);
 	
-	var t : TextField = new TextField();
 	function init() 
 	{
 		if (inited) return;
 		inited = true;
 
 		// (your code here)
-		Watch.init();
+
+		addEventListener(Event.ENTER_FRAME, step);
 		
-		kbd = new Keys();
-		kbd.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
-		kbd.addEventListener(Ctrl.EVENT_CONSOLE, switchConsole);
+		Lde.initialize();
+		
+		Lde.keys.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
+		Lde.keys.addEventListener(Ctrl.EVENT_CONSOLE, switchConsole);
 		
 		gfx = new Gfx();
 		addChild(gfx);
 		
-		Lib.current.stage.color = Colors.GREY_25;
-		
-		addEventListener(Event.ENTER_FRAME, step);
-		
-		
-		t.x = 200;
-		t.y = 10;
-		t.width = 400;
-		t.height = 20;
-		t.textColor = Colors.GREY_75;
-		addChild(t);
-		
-		chr.x = 200;
-		chr.y = 200;
-		chr.animation = gfx.getAnimation(Chr.IDLE);
-		chr.animation.start(16);
-		
-		//var s = Assets.getSound("sfx/bgm.mp3");
-		Audio.volume = 0.2;
-		Audio.playMusic(Sfx.BGM);
+		chapter = new Chapter();
+		chapter.start();
 	}
 
 	
 	var on : Bool = false;
 	function switchConsole(_) { if (!on) { addChild(stats); on = true; } else { removeChild(stats); on = false; } }
 	
-	var id : Int = 0;
-	var f : Bool = true;
-	var lvl = new Level();
-	var chr = new Entity();
-	var viewport = new Rectangle(0, 0, 960, 540);
 	function step(_)
 	{
-		if (kbd.isKeyPushed(Keyboard.PAGE_UP))
-		{
-			Audio.volume = Audio.volume + 0.1;
-		}
-		else if (kbd.isKeyPushed(Keyboard.PAGE_DOWN))
-		{
-			Audio.volume = Audio.volume - 0.1;
-		}
-		if (kbd.isKeyDown(Ctrl.P1_LEFT))
-		{
-			chr.x -= 2;
-			viewport.x -= 2;
-			if (chr.animation.id != Chr.WALK_L)
-			{
-				chr.animation = gfx.getAnimation(Chr.WALK_L);
-				chr.animation.start(8);
-			}
-		}
-		else if (kbd.isKeyDown(Ctrl.P1_RIGHT))
-		{
-			chr.x += 2;
-			viewport.x += 2;
-			if (chr.animation.id != Chr.WALK_R)
-			{
-				chr.animation = gfx.getAnimation(Chr.WALK_R);
-				chr.animation.start(8);
-			}
-		}
-		else
-		{
-			if (chr.animation.id != Chr.IDLE)
-			{
-				chr.animation = gfx.getAnimation(Chr.IDLE);
-				chr.animation.start(16);
-			}
-		}
-		if (kbd.isKeyDown(Ctrl.P1_UP))
-		{
-			viewport.y -= 1;
-			if (kbd.isKeyPushed(Ctrl.P1_UP))
-			{
-				Audio.play(Sfx.JUMP);
-			}
-		}
-		else if (kbd.isKeyDown(Ctrl.P1_DOWN))
-		{
-			viewport.y += 1;
-		}
-		if (kbd.isKeyPushed(Ctrl.P1_START))
-		{
-			chr.animation = gfx.getAnimation(Chr.DEATH);
-			chr.animation.start(16);
-		}
+		chapter.step();
 		
-		gfx.viewport = viewport;
-		gfx.draw([chr]);
+		gfx.viewport = chapter.viewport;
+		gfx.draw([chapter.chr]);
 		gfx.render();
-		lvl.viewport = viewport;
-		lvl.render(gfx.graphics);
+		
+		chapter.lvl.viewport = chapter.viewport;
+		chapter.lvl.render(gfx.graphics);
 	}
 
 	/* SETUP */

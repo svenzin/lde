@@ -24,7 +24,7 @@ class Keys extends EventDispatcher
 	var isChanged : Array<Bool>;
 	var isChangedAccumulator : Array<Bool>;
 	
-	function new()
+	public function new()
 	{
 		super();
 		
