@@ -195,11 +195,13 @@ class Lde
 {
 	public static var keys(get, null) : Keys;
 	public static var gfx(get, null) : Gfx;
+	public static var phx(get, null) : Phx;
 	
 	public static function initialize()
 	{
 		_keys = new Keys();
 		_gfx = new Gfx();
+		_phx = new Phx();
 		Watch.init();
 	}
 	
@@ -208,6 +210,9 @@ class Lde
 
 	static var _gfx : Gfx;
 	static function get_gfx() { return _gfx; }
+
+	static var _phx : Phx;
+	static function get_phx() { return _phx; }
 }
 class Chapter
 {
@@ -226,6 +231,7 @@ class Chapter
 		chr = new Entity();
 		chr.x = 200;
 		chr.y = 200;
+		chr.box = new Rectangle(8, 8, 12, 19);
 		chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
 		chr.animation.start(16);
 		
@@ -285,10 +291,37 @@ class Chapter
 		{
 			viewport.y += 1;
 		}
-		if (Lde.keys.isKeyPushed(Ctrl.P1_START))
+	}
+}
+class Phx extends Sprite
+{
+	public static var COLOR_CENTER = Colors.GREEN;
+	public static var COLOR_BOX = Colors.RED;
+	
+	public function new()
+	{
+		super();
+	}
+	
+	public function step()
+	{}
+	
+	public var viewport : Rectangle;
+	public function render(entities : Array<Entity>)
+	{
+		var active = entities
+			.filter(function (e) return (e.box != null));
+		
+		graphics.clear();
+		for (e in active)
 		{
-			chr.animation = Lde.gfx.getAnimation(Chr.DEATH);
-			chr.animation.start(16);
+			graphics.beginFill(COLOR_BOX);
+			graphics.drawRect(e.x + e.box.left - viewport.x, e.y + e.box.top - viewport.y, e.box.width, e.box.height);
+			graphics.endFill();
+			
+			graphics.beginFill(COLOR_CENTER);
+			graphics.drawRect(e.x - viewport.x, e.y - viewport.y, 1, 1);
+			graphics.endFill();
 		}
 	}
 }
@@ -305,7 +338,6 @@ class Main extends Sprite
 	}
 	
 	var chapter : Chapter;
-	var gfx : Gfx;
 	
 	var stats : Stats = new Stats(10, 10, Colors.GREY_75);
 	
@@ -323,8 +355,14 @@ class Main extends Sprite
 		Lde.keys.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
 		Lde.keys.addEventListener(Ctrl.EVENT_CONSOLE, switchConsole);
 		
-		gfx = new Gfx();
-		addChild(gfx);
+		Lde.keys.remap("LAYER_GFX", Keyboard.F1);
+		Lde.keys.addEventListener("LAYER_GFX", function(_) { if (contains(Lde.gfx)) removeChild(Lde.gfx); else addChild(Lde.gfx); } );
+		
+		Lde.keys.remap("LAYER_PHX", Keyboard.F2);
+		Lde.keys.addEventListener("LAYER_PHX", function(_) { if (contains(Lde.phx)) removeChild(Lde.phx); else addChild(Lde.phx); } );
+		
+		addChild(Lde.gfx);
+		addChild(Lde.phx);
 		
 		chapter = new Chapter();
 		chapter.start();
@@ -336,14 +374,22 @@ class Main extends Sprite
 	
 	function step(_)
 	{
+		// A.I.
 		chapter.step();
 		
-		gfx.viewport = chapter.viewport;
-		gfx.draw([chapter.chr]);
-		gfx.render();
+		// Physics
+		Lde.phx.step();
+		Lde.phx.viewport = chapter.viewport;
+		Lde.phx.render([chapter.chr]);
+		
+		// Graphics
+		// Currently weird to use
+		Lde.gfx.viewport = chapter.viewport;
+		Lde.gfx.draw([chapter.chr]);
+		Lde.gfx.render();
 		
 		chapter.lvl.viewport = chapter.viewport;
-		chapter.lvl.render(gfx.graphics);
+		chapter.lvl.render(Lde.gfx.graphics);
 	}
 
 	/* SETUP */
