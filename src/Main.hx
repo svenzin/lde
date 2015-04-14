@@ -144,11 +144,32 @@ class Level
 [12,12,12,12,12,12,12,12,12,6,13,7,6,13,13,7,6,13,13,13,7,12,12,6,13,13,13,13,7,12,12,12,12,12],
 	];
 	
+	public var extent : Rectangle;
+	public var platforms : Array<Entity> = new Array<Entity>();
+	
 	var tiler : Tiler;
 	public function new()
 	{
+		extent = new Rectangle(0, 0, size[0] * 32, size[1] * 32);
+		
 		tiler = new Tiler(Assets.getBitmapData("gfx/Level.png"));
 		tiler.slice([0, 0], [32, 32], [4, 4]);
+		
+		for (y in 0...size[1])
+		{
+			for (x in 0...size[0])
+			{
+				var type = level[y][x];
+				if (1 <= type && type <= 13)
+				{
+					var e = new Entity();
+					e.x = 32 * x;
+					e.y = 32 * y;
+					e.box = new Rectangle(0, 0, 32, 32);
+					platforms.push(e);
+				}
+			}
+		}
 	}
 	
 	public var data = new Array<Float>();
@@ -254,7 +275,6 @@ class Chapter
 		if (Lde.keys.isKeyDown(Ctrl.P1_LEFT))
 		{
 			chr.x -= 2;
-			viewport.x -= 2;
 			if (chr.animation.id != Chr.WALK_L)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_L);
@@ -264,7 +284,6 @@ class Chapter
 		else if (Lde.keys.isKeyDown(Ctrl.P1_RIGHT))
 		{
 			chr.x += 2;
-			viewport.x += 2;
 			if (chr.animation.id != Chr.WALK_R)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_R);
@@ -291,6 +310,15 @@ class Chapter
 		{
 			viewport.y += 1;
 		}
+		
+		// Center on character
+		viewport.x = chr.x - viewport.width / 2;
+		
+		// Clamp to level extent
+		if (viewport.left < lvl.extent.left) viewport.x += lvl.extent.left - viewport.left;
+		if (viewport.top < lvl.extent.top) viewport.y += lvl.extent.top - viewport.top;
+		if (viewport.right > lvl.extent.right) viewport.x += lvl.extent.right - viewport.right;
+		if (viewport.bottom > lvl.extent.bottom) viewport.y += lvl.extent.bottom - viewport.bottom;
 	}
 }
 class Phx extends Sprite
@@ -310,7 +338,9 @@ class Phx extends Sprite
 	public function render(entities : Array<Entity>)
 	{
 		var active = entities
-			.filter(function (e) return (e.box != null));
+			.filter(function (e) return (e.box != null))
+			.filter(function (e) return (viewport.left - 50 <= e.x && e.x <= viewport.right  + 50))
+			.filter(function (e) return (viewport.top  - 50 <= e.y && e.y <= viewport.bottom + 50));
 		
 		graphics.clear();
 		for (e in active)
@@ -380,7 +410,7 @@ class Main extends Sprite
 		// Physics
 		Lde.phx.step();
 		Lde.phx.viewport = chapter.viewport;
-		Lde.phx.render([chapter.chr]);
+		Lde.phx.render(chapter.lvl.platforms.concat([chapter.chr]));
 		
 		// Graphics
 		// Currently weird to use
