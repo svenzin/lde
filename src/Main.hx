@@ -161,6 +161,7 @@ class Level
 			{
 				var type = level[y][x];
 				if (1 <= type && type <= 13)
+				//if (type == 1)
 				{
 					var e = new Entity();
 					e.x = 32 * x;
@@ -246,17 +247,21 @@ class Chapter
 		
 		viewport = new Rectangle(0, 0, 960, 540);
 		
-		Audio.volume = 0.2;
+		Audio.volume = 0.0;
 		Audio.playMusic(Sfx.BGM);
 		
 		chr = new Entity();
-		chr.x = 200;
-		chr.y = 200;
+		chr.x = 32;
+		chr.y = 452;
 		chr.box = new Rectangle(8, 8, 12, 19);
 		chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
 		chr.animation.start(16);
-		
+
+
 		lvl = new Level();
+		
+		Lde.phx.entities = lvl.platforms.concat([ chr ]);
+		//Lde.phx.entities = [ chr ];
 	}
 	
 	public var chr : Entity;
@@ -264,6 +269,10 @@ class Chapter
 	public var viewport : Rectangle;
 	public function step()
 	{
+		//if (Lde.keys.isKeyPushed(Keyboard.SPACE)){
+		if (true){
+		var old = new Point(chr.x, chr.y);
+		
 		if (Lde.keys.isKeyPushed(Keyboard.PAGE_UP))
 		{
 			Audio.volume = Audio.volume + 0.1;
@@ -274,7 +283,7 @@ class Chapter
 		}
 		if (Lde.keys.isKeyDown(Ctrl.P1_LEFT))
 		{
-			chr.x -= 2;
+			chr.x -= 1;
 			if (chr.animation.id != Chr.WALK_L)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_L);
@@ -283,7 +292,7 @@ class Chapter
 		}
 		else if (Lde.keys.isKeyDown(Ctrl.P1_RIGHT))
 		{
-			chr.x += 2;
+			chr.x += 1;
 			if (chr.animation.id != Chr.WALK_R)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_R);
@@ -311,6 +320,20 @@ class Chapter
 			viewport.y += 1;
 		}
 		
+		Lde.phx.step();
+		
+		var hits = Lde.phx.hits(chr);
+		if (hits.length > 0)
+		{
+			//var f = function (e : Entity) : Rectangle { var r = e.box.clone(); r.offset(e.x, e.y); return r; };
+			//var or = f(chr);
+			//or.offset(old.x - chr.x, old.y - chr.y);
+			//trace(or);
+			//trace([ chr ].concat(hits).map(function (e) { var r = e.box.clone(); r.offset(e.x, e.y); return r; } ));
+			chr.x = old.x;
+			chr.y = old.y;
+		}
+		
 		// Center on character
 		viewport.x = chr.x - viewport.width / 2;
 		
@@ -319,7 +342,7 @@ class Chapter
 		if (viewport.top < lvl.extent.top) viewport.y += lvl.extent.top - viewport.top;
 		if (viewport.right > lvl.extent.right) viewport.x += lvl.extent.right - viewport.right;
 		if (viewport.bottom > lvl.extent.bottom) viewport.y += lvl.extent.bottom - viewport.bottom;
-	}
+	} }
 }
 class Phx extends Sprite
 {
@@ -331,11 +354,65 @@ class Phx extends Sprite
 		super();
 	}
 	
+	public var entities = new Array<Entity>();
+	
 	public function step()
-	{}
+	{
+		entities.sort(function (a, b)
+		{
+			var aa = a.x + a.box.left;
+			var bb = b.x + b.box.left;
+			
+			if (bb > aa) return 1
+			else if (bb == aa) return 0
+			else return -1;
+		});
+	}
+	function binary_search(items : Array<Entity>, f : Entity -> Int) : Int
+	{
+		if (items.length == 0) return -1;
+		if (f(items[0]) > 0) return -1;
+		
+		var l = 0;
+		var r = items.length - 1;
+		while ((r - l) > 2)
+		{
+			var i = (l + r) << 1;
+			if (f(items[i]) >= 0) r = i;
+			else l = i;
+		}
+		return l;
+	}
+	function find_first(items : Array<Entity>, predicate : Entity -> Bool) : Int
+	{
+		var i = 0;
+		while (i < items.length)
+		{
+			if (predicate(items[i])) return i;
+			++i;
+		}
+		return i;
+	}
+	public function hits(target : Entity) : Array<Entity>
+	{
+		if (entities.indexOf(target) == -1) return new Array<Entity>();
+
+		var hitters = entities
+//			.filter(function (e) { return (e.x + e.box.right) >= (target.x + target.box.left); } )
+//			.filter(function (e) { return (e.x + e.box.left) <= (target.x + target.box.right); } )
+//			.filter(function (e) { return (e.y + e.box.bottom) >= (target.y + target.box.top); } )
+//			.filter(function (e) { return (e.y + e.box.top) <= (target.y + target.box.bottom); } );
+			.filter(function (e) { return (e.x + e.box.right) > (target.x + target.box.left); } )
+			.filter(function (e) { return (e.x + e.box.left) < (target.x + target.box.right); } )
+			.filter(function (e) { return (e.y + e.box.bottom) > (target.y + target.box.top); } )
+			.filter(function (e) { return (e.y + e.box.top) < (target.y + target.box.bottom); } );
+		hitters.remove(target);
+		
+		return hitters;
+	}
 	
 	public var viewport : Rectangle;
-	public function render(entities : Array<Entity>)
+	public function render()
 	{
 		var active = entities
 			.filter(function (e) return (e.box != null))
@@ -408,9 +485,9 @@ class Main extends Sprite
 		chapter.step();
 		
 		// Physics
-		Lde.phx.step();
+		//Lde.phx.step();
 		Lde.phx.viewport = chapter.viewport;
-		Lde.phx.render(chapter.lvl.platforms.concat([chapter.chr]));
+		Lde.phx.render();
 		
 		// Graphics
 		// Currently weird to use
