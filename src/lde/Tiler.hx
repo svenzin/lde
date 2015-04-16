@@ -34,8 +34,14 @@ class Tiler
 		animations[id] = indices;
 	}
 	
-	public function get(id : Int) : Array<Int>
+	public function get(id : Int) : TiledAnimation
 	{
-		return animations[id];
+		if (!animations.exists(id)) return null;
+		
+		var a = new TiledAnimation();
+		a.id = id;
+		a.indices = animations[id];
+		a.tiler = this;
+		return a;
 	}
 }

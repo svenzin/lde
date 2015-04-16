@@ -3,6 +3,7 @@ class TiledAnimation
 {
 	public var id : Int;
 	public var indices : Array<Int>;
+	public var tiler : Tiler;
 	public function new()
 	{
 		currentFrame = 0;

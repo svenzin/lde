@@ -81,50 +81,73 @@ class Arrow extends Tiler
 		register(ARROW_ROTATION, [ 0, 1, 2, 3, 4, 5, 6, 7 ]);
 	}
 }
+interface CustomRenderer
+{
+	function render(graphics : Graphics) : Void;
+}
 class Gfx extends Sprite
 {
-	var tiler : Tiler;
+	var tilers = new Array<Tiler>();
 	public function new()
 	{
 		super();
 		
-		tiler = new Chr();
+		tilers = [ new Chr() ];
 	}
 	
-	public function getAnimation(id : Int) : TiledAnimation
+	public function getAnim(id : Int)
 	{
-		var a = new TiledAnimation();
-		a.id = id;
-		a.indices = tiler.get(id);
-		return a;
+		for (tiler in tilers)
+		{
+			var anim = tiler.get(id);
+			if (anim != null) return anim;
+		}
+		return null;
 	}
 	
-	public var viewport : Rectangle;
-	var data : Array<Float> = new Array();
+	public var entities = new Array<Entity>();
+	public var custom = new Array<CustomRenderer>();
 	
-	public function draw(entities : Array<Entity>)
+	var datamap : Map<Tiler, Array<Float>>;
+	public function draw()
 	{
 		var active = entities
 			.filter(function (e) return (e.animation != null))
-			.filter(function (e) return (viewport.left - 50 <= e.x && e.x <= viewport.right  + 50))
-			.filter(function (e) return (viewport.top  - 50 <= e.y && e.y <= viewport.bottom + 50));
+			.filter(function (e) return (Lde.viewport.left - 50 <= e.x && e.x <= Lde.viewport.right  + 50))
+			.filter(function (e) return (Lde.viewport.top  - 50 <= e.y && e.y <= Lde.viewport.bottom + 50));
 		
-		for (e in active)
+		datamap = new Map();
+		for (tiler in tilers)
 		{
-			e.animation.update();
-			data = data.concat([e.x - viewport.x, e.y - viewport.y, e.animation.get()]);
+			datamap[tiler] = [];
+		}
+		
+		for (tiler in datamap.keys())
+		{
+			var items = active.filter(function (e) { return e.animation.tiler == tiler; } );
+			for (e in items)
+			{
+				e.animation.update();
+				datamap[tiler] = datamap[tiler].concat([e.x - Lde.viewport.x, e.y - Lde.viewport.y, e.animation.get()]);
+			}
 		}
 	}
 	
 	public function render()
 	{
 		graphics.clear();
-		tiler.sheet.drawTiles(this.graphics, data);
-		data = new Array();
+		for (e in custom)
+		{
+			e.render(this.graphics);
+		}
+		for (tiler in datamap.keys())
+		{
+			tiler.sheet.drawTiles(this.graphics, datamap[tiler]);
+		}
 	}
 }
 
-class Level
+class Level implements CustomRenderer
 {
 	var size = [ 34, 19 ];
 	var level = [
@@ -179,13 +202,12 @@ class Level
 	}
 	
 	public var data = new Array<Float>();
-	public var viewport = new Rectangle(0, 0, 960, 540);
 	public function render(graphics : Graphics)
 	{
-		var ix0 = Math.floor(viewport.left / 32);
-		var iy0 = Math.floor(viewport.top / 32);
-		var ix1 = Math.ceil(viewport.right / 32);
-		var iy1 = Math.ceil(viewport.bottom / 32);
+		var ix0 = Math.floor(Lde.viewport.left / 32);
+		var iy0 = Math.floor(Lde.viewport.top / 32);
+		var ix1 = Math.ceil(Lde.viewport.right / 32);
+		var iy1 = Math.ceil(Lde.viewport.bottom / 32);
 		
 		if (ix0 < 0) ix0 = 0;
 		if (ix1 > size[0]) ix1 = size[0];
@@ -209,8 +231,8 @@ class Level
 		{
 			for (x in ix0...ix1)
 			{
-				data[index] = Math.round(32 * x - viewport.left);
-				data[index + 1] = Math.round(32 * y - viewport.top);
+				data[index] = Math.round(32 * x - Lde.viewport.left);
+				data[index + 1] = Math.round(32 * y - Lde.viewport.top);
 				data[index + 2] = level[y][x];
 				index += 3;
 			}
@@ -220,6 +242,8 @@ class Level
 }
 class Lde
 {
+	public static var viewport : Rectangle;
+	
 	public static var keys(get, null) : Keys;
 	public static var gfx(get, null) : Gfx;
 	public static var phx(get, null) : Phx;
@@ -241,16 +265,23 @@ class Lde
 	static var _phx : Phx;
 	static function get_phx() { return _phx; }
 }
-class Chapter
+interface Chapter
+{
+	function start() : Void;
+	function step() : Void;
+	function quit() : Void;
+}
+class LevelOne implements Chapter
 {
 	public function new()
+	{}
+	
+	public function quit()
 	{}
 	
 	public function start()
 	{
 		Lib.current.stage.color = Colors.GREY_25;
-		
-		viewport = new Rectangle(0, 0, 960, 540);
 		
 		Audio.volume = 0.0;
 		Audio.playMusic(Sfx.BGM);
@@ -259,7 +290,7 @@ class Chapter
 		chr.x = 32;
 		chr.y = 452;
 		chr.box = new Rectangle(8, 8, 12, 19);
-		chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
+		chr.animation = Lde.gfx.getAnim(Chr.IDLE);
 		chr.animation.start(16);
 
 		old = new Point(chr.x, chr.y);
@@ -268,12 +299,13 @@ class Chapter
 		lvl = new Level();
 		
 		Lde.phx.entities = lvl.platforms.concat([ chr ]);
+		Lde.gfx.entities = [ chr ];
+		Lde.gfx.custom = [ lvl ];
 		//Lde.phx.entities = [ chr ];
 	}
 	
 	public var chr : Entity;
 	public var lvl : Level;
-	public var viewport : Rectangle;
 	
 	var old : Point;
 	var old2 : Point;
@@ -294,7 +326,7 @@ class Chapter
 			delta.x = -1.5;
 			if (chr.animation.id != Chr.WALK_L)
 			{
-				chr.animation = Lde.gfx.getAnimation(Chr.WALK_L);
+				chr.animation = Lde.gfx.getAnim(Chr.WALK_L);
 				chr.animation.start(8);
 			}
 		}
@@ -303,7 +335,7 @@ class Chapter
 			delta.x = 1.5;
 			if (chr.animation.id != Chr.WALK_R)
 			{
-				chr.animation = Lde.gfx.getAnimation(Chr.WALK_R);
+				chr.animation = Lde.gfx.getAnim(Chr.WALK_R);
 				chr.animation.start(8);
 			}
 		}
@@ -311,7 +343,7 @@ class Chapter
 		{
 			if (chr.animation.id != Chr.IDLE)
 			{
-				chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
+				chr.animation = Lde.gfx.getAnim(Chr.IDLE);
 				chr.animation.start(16);
 			}
 		}
@@ -328,8 +360,7 @@ class Chapter
 		delta.y += g + old.y - old2.y;
 		
 		chr.y += delta.y;
-		Lde.phx.step();
-		
+		//Lde.phx.step();
 		var hits = Lde.phx.hits(chr);
 		if (hits.length > 0)
 		{
@@ -342,7 +373,7 @@ class Chapter
 		}
 
 		chr.x += delta.x;
-		Lde.phx.step();
+		//Lde.phx.step();
 		
 		var hits = Lde.phx.hits(chr);
 		if (hits.length > 0)
@@ -356,14 +387,14 @@ class Chapter
 		}
 		
 		// Center on character
-		viewport.x = chr.x - viewport.width / 2;
-		viewport.y = chr.y - viewport.height / 2;
+		Lde.viewport.x = chr.x - Lde.viewport.width / 2;
+		Lde.viewport.y = chr.y - Lde.viewport.height / 2;
 		
 		// Clamp to level extent
-		if (viewport.left < lvl.extent.left) viewport.x += lvl.extent.left - viewport.left;
-		if (viewport.top < lvl.extent.top) viewport.y += lvl.extent.top - viewport.top;
-		if (viewport.right > lvl.extent.right) viewport.x += lvl.extent.right - viewport.right;
-		if (viewport.bottom > lvl.extent.bottom) viewport.y += lvl.extent.bottom - viewport.bottom;
+		if (Lde.viewport.left < lvl.extent.left) Lde.viewport.x += lvl.extent.left - Lde.viewport.left;
+		if (Lde.viewport.top < lvl.extent.top) Lde.viewport.y += lvl.extent.top - Lde.viewport.top;
+		if (Lde.viewport.right > lvl.extent.right) Lde.viewport.x += lvl.extent.right - Lde.viewport.right;
+		if (Lde.viewport.bottom > lvl.extent.bottom) Lde.viewport.y += lvl.extent.bottom - Lde.viewport.bottom;
 	} }
 }
 class Phx extends Sprite
@@ -379,6 +410,10 @@ class Phx extends Sprite
 	public var entities = new Array<Entity>();
 	
 	public function step()
+	{
+	}
+	
+	public function sort()
 	{
 		entities.sort(function (a, b)
 		{
@@ -433,27 +468,27 @@ class Phx extends Sprite
 		return hitters;
 	}
 	
-	public var viewport : Rectangle;
 	public function render()
 	{
 		var active = entities
 			.filter(function (e) return (e.box != null))
-			.filter(function (e) return (viewport.left - 50 <= e.x && e.x <= viewport.right  + 50))
-			.filter(function (e) return (viewport.top  - 50 <= e.y && e.y <= viewport.bottom + 50));
+			.filter(function (e) return (Lde.viewport.left - 50 <= e.x && e.x <= Lde.viewport.right  + 50))
+			.filter(function (e) return (Lde.viewport.top  - 50 <= e.y && e.y <= Lde.viewport.bottom + 50));
 		
 		graphics.clear();
 		for (e in active)
 		{
 			graphics.beginFill(COLOR_BOX);
-			graphics.drawRect(e.x + e.box.left - viewport.x, e.y + e.box.top - viewport.y, e.box.width, e.box.height);
+			graphics.drawRect(e.x + e.box.left - Lde.viewport.x, e.y + e.box.top - Lde.viewport.y, e.box.width, e.box.height);
 			graphics.endFill();
 			
 			graphics.beginFill(COLOR_CENTER);
-			graphics.drawRect(e.x - viewport.x, e.y - viewport.y, 1, 1);
+			graphics.drawRect(e.x - Lde.viewport.x, e.y - Lde.viewport.y, 1, 1);
 			graphics.endFill();
 		}
 	}
 }
+
 class Main extends Sprite 
 {
 	var inited:Bool;
@@ -466,7 +501,7 @@ class Main extends Sprite
 		// else (resize or orientation change)
 	}
 	
-	var chapter : Chapter;
+	var chapter : LevelOne;
 	
 	var stats : Stats = new Stats(10, 10, Colors.GREY_75);
 	
@@ -480,6 +515,7 @@ class Main extends Sprite
 		addEventListener(Event.ENTER_FRAME, step);
 		
 		Lde.initialize();
+		Lde.viewport = new Rectangle(0, 0, 960, 540);
 		
 		Lde.keys.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
 		Lde.keys.remap(Ctrl.EVENT_VOLUME_UP, Ctrl.KEY_VOLUME_UP);
@@ -497,7 +533,7 @@ class Main extends Sprite
 		addChild(Lde.gfx);
 		addChild(Lde.phx);
 		
-		chapter = new Chapter();
+		chapter = new LevelOne();
 		chapter.start();
 	}
 
@@ -509,18 +545,13 @@ class Main extends Sprite
 		chapter.step();
 		
 		// Physics
-		//Lde.phx.step();
-		Lde.phx.viewport = chapter.viewport;
+		Lde.phx.step();
 		Lde.phx.render();
 		
 		// Graphics
 		// Currently weird to use
-		Lde.gfx.viewport = chapter.viewport;
-		Lde.gfx.draw([chapter.chr]);
+		Lde.gfx.draw();
 		Lde.gfx.render();
-		
-		chapter.lvl.viewport = chapter.viewport;
-		chapter.lvl.render(Lde.gfx.graphics);
 	}
 
 	/* SETUP */
