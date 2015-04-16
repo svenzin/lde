@@ -7,6 +7,7 @@ import haxe.Timer;
 import lde.*;
 import openfl.Assets;
 import openfl.display.BitmapData;
+import openfl.display.DisplayObject;
 import openfl.display.Graphics;
 import openfl.display.Tilesheet;
 import openfl.events.EventDispatcher;
@@ -208,8 +209,8 @@ class Level
 		{
 			for (x in ix0...ix1)
 			{
-				data[index] = 32 * x - viewport.left;
-				data[index + 1] = 32 * y - viewport.top;
+				data[index] = Math.round(32 * x - viewport.left);
+				data[index + 1] = Math.round(32 * y - viewport.top);
 				data[index + 2] = level[y][x];
 				index += 3;
 			}
@@ -261,6 +262,8 @@ class Chapter
 		chr.animation = Lde.gfx.getAnimation(Chr.IDLE);
 		chr.animation.start(16);
 
+		old = new Point(chr.x, chr.y);
+		old2 = old.clone();
 
 		lvl = new Level();
 		
@@ -271,15 +274,24 @@ class Chapter
 	public var chr : Entity;
 	public var lvl : Level;
 	public var viewport : Rectangle;
+	
+	var old : Point;
+	var old2 : Point;
+	var g : Float = 0.3;
 	public function step()
 	{
 		//if (Lde.keys.isKeyPushed(Keyboard.SPACE)){
 		if (true){
-		var old = new Point(chr.x, chr.y);
+		
+		var delta = new Point();
+		old2.x = old.x;
+		old2.y = old.y;
+		old.x = chr.x;
+		old.y = chr.y;
 		
 		if (Lde.keys.isKeyDown(Ctrl.P1_LEFT))
 		{
-			chr.x -= 1;
+			delta.x = -1.5;
 			if (chr.animation.id != Chr.WALK_L)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_L);
@@ -288,7 +300,7 @@ class Chapter
 		}
 		else if (Lde.keys.isKeyDown(Ctrl.P1_RIGHT))
 		{
-			chr.x += 1;
+			delta.x = 1.5;
 			if (chr.animation.id != Chr.WALK_R)
 			{
 				chr.animation = Lde.gfx.getAnimation(Chr.WALK_R);
@@ -303,35 +315,49 @@ class Chapter
 				chr.animation.start(16);
 			}
 		}
-		if (Lde.keys.isKeyDown(Ctrl.P1_UP))
+		if (Lde.keys.isKeyPushed(Ctrl.P1_UP))
 		{
-			viewport.y -= 1;
-			if (Lde.keys.isKeyPushed(Ctrl.P1_UP))
-			{
-				Audio.play(Sfx.JUMP);
-			}
+			Audio.play(Sfx.JUMP);
+			delta.y -= 5;
 		}
-		else if (Lde.keys.isKeyDown(Ctrl.P1_DOWN))
+		else if (Lde.keys.isKeyPushed(Ctrl.P1_DOWN))
 		{
-			viewport.y += 1;
 		}
 		
+		//if (old.y != old2.y) trace([ old.y, old2.y ]);
+		delta.y += g + old.y - old2.y;
+		
+		chr.y += delta.y;
 		Lde.phx.step();
 		
 		var hits = Lde.phx.hits(chr);
 		if (hits.length > 0)
 		{
-			//var f = function (e : Entity) : Rectangle { var r = e.box.clone(); r.offset(e.x, e.y); return r; };
+			var f = function (e : Entity) : Rectangle { var r = e.box.clone(); r.offset(e.x, e.y); return r; };
+			//var or = f(chr);
+			//or.offset(old.x - chr.x, old.y - chr.y);
+			//trace(or);
+			//if (delta.y < 0) trace([ chr ].concat(hits).map(function (e) { var r = e.box.clone(); r.offset(e.x, e.y); return r; } ));
+			chr.y = old.y;
+		}
+
+		chr.x += delta.x;
+		Lde.phx.step();
+		
+		var hits = Lde.phx.hits(chr);
+		if (hits.length > 0)
+		{
+			var f = function (e : Entity) : Rectangle { var r = e.box.clone(); r.offset(e.x, e.y); return r; };
 			//var or = f(chr);
 			//or.offset(old.x - chr.x, old.y - chr.y);
 			//trace(or);
 			//trace([ chr ].concat(hits).map(function (e) { var r = e.box.clone(); r.offset(e.x, e.y); return r; } ));
 			chr.x = old.x;
-			chr.y = old.y;
 		}
 		
 		// Center on character
 		viewport.x = chr.x - viewport.width / 2;
+		viewport.y = chr.y - viewport.height / 2;
 		
 		// Clamp to level extent
 		if (viewport.left < lvl.extent.left) viewport.x += lvl.extent.left - viewport.left;
