@@ -345,6 +345,7 @@ class MainMenu extends Chapter
 		if (Lde.keys.isKeyPushed(Ctrl.P1_START))
 		{
 			play.animation = Lde.gfx.getAnim(Menu.PLAY_SELECTED);
+			Lde.open(new LevelOne());
 		}
 	}
 	
@@ -397,23 +398,14 @@ class Main extends Sprite
 		addChild(Lde.gfx);
 		addChild(Lde.phx);
 
-		chapter = new MainMenu();
-		chapter.start();
+		Lde.open(new MainMenu());
 	}
 
 	function switchChild(e : DisplayObject) { return function (_) { if (contains(e)) removeChild(e); else addChild(e); }; }
 	
 	function step(_)
 	{
-		// A.I.
-		chapter.step();
-		
-		// Physics
-		Lde.phx.step();
-		
-		// Graphics
-		Lde.phx.render();
-		Lde.gfx.render();
+		Lde.step();
 	}
 
 	/* SETUP */
