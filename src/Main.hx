@@ -68,6 +68,23 @@ class Chr extends Tiler
 		register(DEATH,  [ 20, 21, 22, 23 ]);
 	}
 }
+class Menu extends Tiler
+{
+	static public var PLAY_NORMAL   = Id.get();
+	static public var PLAY_SELECTED = Id.get();
+	static public var TITLE         = Id.get();
+	
+	public function new()
+	{
+		super(Assets.getBitmapData("gfx/MainMenu.png"));
+		slice([0,   0], [160,  64], [1, 1]);
+		slice([0,  64], [160,  64], [1, 1]);
+		slice([0, 128], [640, 128], [1, 1]);
+		register(PLAY_NORMAL, [ 0 ]);
+		register(PLAY_SELECTED, [ 1 ]);
+		register(TITLE, [ 2 ]);
+	}
+}
 
 
 class Level implements ICustomRenderer
@@ -291,6 +308,50 @@ class LevelOne extends Chapter
 		if (Lde.viewport.bottom > lvl.extent.bottom) Lde.viewport.y += lvl.extent.bottom - Lde.viewport.bottom;
 	} }
 }
+class MainMenu extends Chapter
+{
+	var play = new Entity();
+	var title = new Entity();
+	
+	public function new() {}
+		
+	override public function start() 
+	{
+		Lib.current.stage.color = Colors.GREY_25;
+		
+		Lde.gfx.tilers = [ new Menu() ];
+		
+		Audio.volume = 0.0;
+		Audio.playMusic(Sfx.BGM);
+		
+		play.x = 240;
+		play.y = 200;
+		play.animation = Lde.gfx.getAnim(Menu.PLAY_NORMAL);
+		
+		title.x = 0;
+		title.y = 0;
+		title.animation = Lde.gfx.getAnim(Menu.TITLE);
+		
+		Lde.gfx.entities = [ title, play ];
+	}
+	
+	override public function step() 
+	{
+		if (Lde.keys.isKeyPushed(Ctrl.P1_DOWN))
+		{
+			play.animation = Lde.gfx.getAnim(Menu.PLAY_SELECTED);
+		}
+		
+		if (Lde.keys.isKeyPushed(Ctrl.P1_START))
+		{
+			play.animation = Lde.gfx.getAnim(Menu.PLAY_SELECTED);
+		}
+	}
+	
+	override public function quit() 
+	{
+	}
+}
 
 class Main extends Sprite 
 {
@@ -304,7 +365,7 @@ class Main extends Sprite
 		// else (resize or orientation change)
 	}
 	
-	var chapter : LevelOne;
+	var chapter : Chapter;
 	
 	var stats : Stats = new Stats(10, 10, Colors.GREY_75);
 	
@@ -336,7 +397,7 @@ class Main extends Sprite
 		addChild(Lde.gfx);
 		addChild(Lde.phx);
 
-		chapter = new LevelOne();
+		chapter = new MainMenu();
 		chapter.start();
 	}
 
