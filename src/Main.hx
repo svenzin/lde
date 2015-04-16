@@ -28,8 +28,12 @@ import lde.Stats;
 class Ctrl
 {
 	static public var EVENT_CONSOLE : String = "CONSOLE";
+	static public var EVENT_VOLUME_UP : String = "VOLUME_UP";
+	static public var EVENT_VOLUME_DOWN : String = "VOLUME_DOWN";
 	
 	static public var KEY_CONSOLE = 223;
+	static public var KEY_VOLUME_UP = Keyboard.PAGE_UP;
+	static public var KEY_VOLUME__DOWN = Keyboard.PAGE_DOWN;
 	
 	static public var P1_UP    = Keyboard.UP;
 	static public var P1_DOWN  = Keyboard.DOWN;
@@ -273,14 +277,6 @@ class Chapter
 		if (true){
 		var old = new Point(chr.x, chr.y);
 		
-		if (Lde.keys.isKeyPushed(Keyboard.PAGE_UP))
-		{
-			Audio.volume = Audio.volume + 0.1;
-		}
-		else if (Lde.keys.isKeyPushed(Keyboard.PAGE_DOWN))
-		{
-			Audio.volume = Audio.volume - 0.1;
-		}
 		if (Lde.keys.isKeyDown(Ctrl.P1_LEFT))
 		{
 			chr.x -= 1;
@@ -460,13 +456,17 @@ class Main extends Sprite
 		Lde.initialize();
 		
 		Lde.keys.remap(Ctrl.EVENT_CONSOLE, Ctrl.KEY_CONSOLE);
-		Lde.keys.addEventListener(Ctrl.EVENT_CONSOLE, switchConsole);
-		
+		Lde.keys.remap(Ctrl.EVENT_VOLUME_UP, Ctrl.KEY_VOLUME_UP);
+		Lde.keys.remap(Ctrl.EVENT_VOLUME_DOWN, Ctrl.KEY_VOLUME__DOWN);
+		Lde.keys.addEventListener(Ctrl.EVENT_CONSOLE, switchChild(stats));
+		Lde.keys.addEventListener(Ctrl.EVENT_VOLUME_UP, function (_) { Audio.volume = Audio.volume + 0.1; });
+		Lde.keys.addEventListener(Ctrl.EVENT_VOLUME_DOWN, function (_) { Audio.volume = Audio.volume - 0.1; });
+
 		Lde.keys.remap("LAYER_GFX", Keyboard.F1);
-		Lde.keys.addEventListener("LAYER_GFX", function(_) { if (contains(Lde.gfx)) removeChild(Lde.gfx); else addChild(Lde.gfx); } );
+		Lde.keys.addEventListener("LAYER_GFX", switchChild(Lde.gfx));
 		
 		Lde.keys.remap("LAYER_PHX", Keyboard.F2);
-		Lde.keys.addEventListener("LAYER_PHX", function(_) { if (contains(Lde.phx)) removeChild(Lde.phx); else addChild(Lde.phx); } );
+		Lde.keys.addEventListener("LAYER_PHX", switchChild(Lde.phx));
 		
 		addChild(Lde.gfx);
 		addChild(Lde.phx);
@@ -475,9 +475,7 @@ class Main extends Sprite
 		chapter.start();
 	}
 
-	
-	var on : Bool = false;
-	function switchConsole(_) { if (!on) { addChild(stats); on = true; } else { removeChild(stats); on = false; } }
+	function switchChild(e : DisplayObject) { return function (_) { if (contains(e)) removeChild(e); else addChild(e); }; }
 	
 	function step(_)
 	{
